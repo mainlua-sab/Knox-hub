@@ -846,6 +846,8 @@ local function createSettingsGui()
     shdr.BackgroundColor3 = Color3.fromRGB(12,12,20)
     shdr.BorderSizePixel = 0
     shdr.ZIndex = 201
+    shdr.Active = true
+    shdr.Selectable = true
     Corner(shdr, 12)
 
     local st = Instance.new("TextLabel", shdr)
@@ -1129,6 +1131,7 @@ local function createSettingsGui()
     scaleSlider.BackgroundColor3 = T.Dim
     scaleSlider.BorderSizePixel = 0
     scaleSlider.ZIndex = 203
+    scaleSlider.Active = true
     Corner(scaleSlider, 2)
 
     local scaleKnob = Instance.new("Frame", scaleSlider)
@@ -1137,6 +1140,8 @@ local function createSettingsGui()
     scaleKnob.BackgroundColor3 = T.Accent
     scaleKnob.BorderSizePixel = 0
     scaleKnob.ZIndex = 204
+    scaleKnob.Active = true
+    scaleKnob.Selectable = true
     Corner(scaleKnob, 4)
 
     local scaleVal = Instance.new("TextLabel", scaleRow)
@@ -1153,32 +1158,45 @@ local function createSettingsGui()
     local scaleInputBegan = false
 
     scaleKnob.InputBegan:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
             scaleInputBegan = true
         end
     end)
     scaleKnob.InputEnded:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
             scaleInputBegan = false
         end
     end)
 
-    UserInputService.InputChanged:Connect(function(inp)
-        if scaleInputBegan and inp.UserInputType == Enum.UserInputType.MouseMovement then
+    local scaleConnection
+    scaleConnection = UserInputService.InputChanged:Connect(function(inp)
+        if scaleInputBegan and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
             local mousePos = inp.Position.X
             local sliderPos = scaleSlider.AbsolutePosition.X
             local sliderSize = scaleSlider.AbsoluteSize.X
-            local relativeX = math.clamp(mousePos - sliderPos, 0, sliderSize)
-            local scale = 0.5 + (relativeX / sliderSize) * 1.5
-            scale = math.floor(scale * 10 + 0.5) / 10  -- Fixed: use math.floor instead of math.round
-            currentScale = math.clamp(scale, 0.5, 2.0)
             
-            local knobPos = (currentScale - 0.5) / 1.5
-            scaleKnob.Position = UDim2.new(knobPos, -4, 0.5, -4)
-            scaleVal.Text = string.format("%.1f", currentScale)
-            
-            bg.Size = UDim2.new(0, 300 * currentScale, 0, 480 * currentScale)
-            scroll.Size = UDim2.new(1, -16, 1, -48)
+            if sliderSize > 0 then
+                local relativeX = math.clamp(mousePos - sliderPos, 0, sliderSize)
+                local percentage = relativeX / sliderSize
+                currentScale = 0.5 + (percentage * 1.5)
+                currentScale = math.floor(currentScale * 10 + 0.5) / 10
+                currentScale = math.clamp(currentScale, 0.5, 2.0)
+                
+                local knobPos = (currentScale - 0.5) / 1.5
+                scaleKnob.Position = UDim2.new(knobPos, -4, 0.5, -4)
+                scaleVal.Text = string.format("%.1f", currentScale)
+                
+                -- Scale the settings window
+                local newWidth = 300 * currentScale
+                local newHeight = 480 * currentScale
+                bg.Size = UDim2.new(0, newWidth, 0, newHeight)
+                
+                -- Recenter the window
+                bg.Position = UDim2.new(0.5, -newWidth/2, 0.5, -newHeight/2)
+                
+                -- Update scroll frame size to account for new bg size
+                scroll.Size = UDim2.new(1, -16, 1, -48)
+            end
         end
     end)
 
